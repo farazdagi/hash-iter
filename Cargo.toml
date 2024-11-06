@@ -1,0 +1,23 @@
+[package]
+name = "hash-iter"
+version = "0.1.0"
+authors = ["Victor Farazdagi <farazdagi@gmail.com>"]
+edition = "2021"
+license = "MIT"
+description = "Iterator producing sequence of hash values for a given input (using double hashing technique)"
+homepage = "https://github.com/farazdagi/hash-iter"
+repository = "https://github.com/farazdagi/hash-iter"
+documentation = "https://docs.rs/hash-iter"
+readme = "README.md"
+keywords = [
+  "bloom",
+  "hashing",
+  "double-hashing",
+  "open-addressing",
+  "hash-table",
+]
+categories = ["algorithms", "data-structures"]
+
+[dependencies]
+num-traits = "0.2"
+xxhash-rust = { version = "0.8", features = ["xxh3", "const_xxh3"] }
