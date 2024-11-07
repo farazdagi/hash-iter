@@ -33,14 +33,13 @@ pub struct DoubleHasherState {
 
 impl DoubleHasherState {
     /// Constructs a new hash iterator builder, with default seeds.
-    ///
-    /// Seeds for double hashing: essentially, we can use any seeds, to
-    /// initialize the hasher (by default XXH3 uses `0`).
-    pub fn new(n: usize, k: usize) -> Self {
+    pub fn new(k: usize) -> Self {
+        // Seeds for double hashing: essentially, we can use any seeds, to
+        // initialize the hasher (by default XXH3 uses `0`).
         Self {
             seed1: 12345,
             seed2: 67890,
-            n,
+            n: usize::MAX,
             k,
         }
     }
@@ -66,7 +65,7 @@ impl BuildHashIterHasher<u64> for DoubleHasherState {
     type Hasher = DoubleHasher<Xxh3Builder, Xxh3Builder>;
 
     fn build_hash_iter_hasher(&self) -> Self::Hasher {
-        DoubleHasher::new(
+        DoubleHasher::with_hash_builders(
             Xxh3Builder::new().with_seed(self.seed1),
             Xxh3Builder::new().with_seed(self.seed2),
             self.n,
@@ -76,7 +75,7 @@ impl BuildHashIterHasher<u64> for DoubleHasherState {
 }
 
 /// Enhanced double hashing hasher.
-/// 
+///
 /// Emits an iterator (for a given input key) over hash values generated using
 /// enhanced double hashing.
 pub struct DoubleHasher<H1, H2> {
@@ -86,8 +85,16 @@ pub struct DoubleHasher<H1, H2> {
     k: usize,
 }
 
+impl DoubleHasher<Xxh3Builder, Xxh3Builder> {
+    /// Constructs a new double hasher using default hash builders.
+    pub fn new(k: usize) -> Self {
+        let state = DoubleHasherState::new(k);
+        state.build_hash_iter_hasher()
+    }
+}
+
 impl<H1, H2> DoubleHasher<H1, H2> {
-    pub fn new(hash_builder1: H1, hash_builder2: H2, n: usize, k: usize) -> Self {
+    pub fn with_hash_builders(hash_builder1: H1, hash_builder2: H2, n: usize, k: usize) -> Self {
         Self {
             hash_builder1,
             hash_builder2,
@@ -213,7 +220,8 @@ mod tests {
         let n = 1e9 as u64;
         let k = 100u64;
 
-        let builder = DoubleHasherState::new(n as usize, k as usize)
+        let builder = DoubleHasherState::new(k as usize)
+            .with_n(n as usize)
             .with_seed1(1)
             .with_seed2(2);
 
