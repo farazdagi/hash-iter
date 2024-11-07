@@ -20,74 +20,70 @@ This is useful for implementing many hash-based algorithms, such as:
   (Kirsch and Mitzenmacher, 2006) instead of using `k` different hashers, we can rely on double
   hashing to produce `k` filter positions.
 - Consistent hashing, where double hashing is used to map keys to a ring of servers (for example in
-  Multi-probe consistent hashing).
+  [Multi-probe consistent hashing](https://crates.io/crates/mpchash)).
 
 ## Usage
 
-Create and configure a hasher state (basically a reusable configuration), use it to create a hasher
-object. The hasher object then can be used to hash keys into sequence of `k` hash points.
+Create and configure a hasher either by directly calling constructors of `DoubleHashHasher` or by
+using the builder object `DoubleHashBuilder`.
 
 ### Basic usage
 
-Hasher state allows you to configure how hash iterators are produced. The only required parameter is
-number of hashes per key input, `k`.
-
-``` rust
-// Create a hasher state with 3 hashes per key.
-let state = DoubleHasherState::new(3);
-
-// Create a hasher object.
-// It holds state and can be used to produce hash iterators.
-let hasher = state.build_hash_iter_hasher();
-
-// Hash keys to several hash points (`hash_iter()` returns an iterator).
-let key = "hello";
-let hashes = hasher.hash_iter(&key).collect::<Vec<_>>();
-```
-
 When we are relying on default parameters (for seed values, max hash value etc), and do not need to
-keep state around (which is normally the case, as a single generated hasher is often enough), we can
-use the `DoubleHasher` directly:
+keep builder around (which is normally the case, as a single generated hasher is often enough), we
+can use the `DoubleHashHasher` constructor directly:
 
 ``` rust
-let hasher = DoubleHasher::new(3);
+use hash_iter::{DoubleHashHasher, HashIterHasher};
 
-let hashes = hasher.hash_iter(&"foo").collect::<Vec<_>>();
-let hashes = hasher.hash_iter(&"bar").collect::<Vec<_>>();
+let hasher = DoubleHashHasher::new();
+
+// Hash each key to 3 hash points.
+let hashes = hasher.hash_iter(&"foo", 3).collect::<Vec<_>>();
+let hashes = hasher.hash_iter(&"bar", 3).collect::<Vec<_>>();
 ```
 
 ### Configuring hasher state
 
-In addition to `k`, there are several optional parameters that can be configured: `n` (max hash
-value produced, by default it is `usize::MAX`, so that array indexing is safe), `seed1` and `seed2`
-(seeds for the two hash functions, by default they are `12345` and `67890` respectively).
+There are several optional parameters that can be configured:
+
+- `n`: the maximum hash value producible (by default it is `usize::MAX`, so that array indexing is
+  safe).
+- `seed1` and `seed2`: seeds for the two hash functions (by default they are `12345` and `67890`
+  respectively).
+
+The `DoubleHashBuilder` allows you to configure how hash iterators are produced:
 
 ``` rust
+use hash_iter::{BuildHashIterHasher, DoubleHashHasher, DoubleHashBuilder, HashIterHasher};
+
 // Specify default values explicitly.
-let hasher = DoubleHasherState::new(3)
+let hasher = DoubleHashBuilder::new()
     .with_seed1(12345)
     .with_seed2(67890)
     .with_n(usize::MAX)
     .build_hash_iter_hasher();
 
-let hashes = hasher.hash_iter(&"hello").collect::<Vec<_>>();
+let hashes = hasher.hash_iter(&"hello", 3).collect::<Vec<_>>();
 ```
 
 ### Custom hash functions
 
 One can specify which hash functions to use when creating the first two hash values used to produce
-the sequence. All you need to do is to supply `DoubleHasher::with_hash_builders()` function with two
-structs that implement `hash::BuildHasher`:
+the sequence.
+
+All you need to do is to supply `DoubleHashHasher::with_hash_builders()` function with two structs
+that implement [`hash::BuildHasher`](https://doc.rust-lang.org/std/hash/trait.BuildHasher.html):
 
 ``` rust
+use hash_iter::{BuildHashIterHasher, DoubleHashHasher, DoubleHashBuilder, HashIterHasher};
 use xxhash_rust::xxh3::Xxh3Builder;
 
-let hasher = DoubleHasher::with_hash_builders(
+let hasher = DoubleHashHasher::with_hash_builders(
     Xxh3Builder::new().with_seed(12345),
     Xxh3Builder::new().with_seed(67890),
     usize::MAX, // n
-    3,          // k
 );
 
-let hashes = hasher.hash_iter(&"hello").collect::<Vec<_>>();
+let hashes = hasher.hash_iter(&"hello", 3).collect::<Vec<_>>();
 ```

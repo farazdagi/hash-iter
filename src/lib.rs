@@ -11,7 +11,9 @@ use {
 
 /// Provides an iterator over multiple hash values for a given key.
 pub trait HashIterHasher<V> {
-    fn hash_iter<K: hash::Hash>(&self, key: &K) -> impl Iterator<Item = V>;
+    /// Returns an iterator over `count` number of hash values generated using
+    /// enhanced double hashing.
+    fn hash_iter<K: hash::Hash>(&self, key: &K, count: usize) -> impl Iterator<Item = V>;
 }
 
 /// Builds hash iterator hasher -- a hasher capable of generating multiple hash
@@ -26,23 +28,21 @@ pub trait BuildHashIterHasher<T> {
 ///
 /// Serves as a builder, allowing to configure the hasher with custom seeds,
 /// number of required hashes, and the size of the hash table.
-pub struct DoubleHasherState {
+pub struct DoubleHashBuilder {
     seed1: u64,
     seed2: u64,
     n: usize,
-    k: usize,
 }
 
-impl DoubleHasherState {
+impl DoubleHashBuilder {
     /// Constructs a new hash iterator builder, with default seeds.
-    pub fn new(k: usize) -> Self {
+    pub fn new() -> Self {
         // Seeds for double hashing: essentially, we can use any seeds, to
         // initialize the hasher (by default XXH3 uses `0`).
         Self {
             seed1: 12345,
             seed2: 67890,
             n: usize::MAX,
-            k,
         }
     }
 
@@ -57,21 +57,16 @@ impl DoubleHasherState {
     pub fn with_n(self, n: usize) -> Self {
         Self { n, ..self }
     }
-
-    pub fn with_k(self, k: usize) -> Self {
-        Self { k, ..self }
-    }
 }
 
-impl BuildHashIterHasher<u64> for DoubleHasherState {
-    type Hasher = DoubleHasher<Xxh3Builder, Xxh3Builder>;
+impl BuildHashIterHasher<u64> for DoubleHashBuilder {
+    type Hasher = DoubleHashHasher<Xxh3Builder, Xxh3Builder>;
 
     fn build_hash_iter_hasher(&self) -> Self::Hasher {
-        DoubleHasher::with_hash_builders(
+        DoubleHashHasher::with_hash_builders(
             Xxh3Builder::new().with_seed(self.seed1),
             Xxh3Builder::new().with_seed(self.seed2),
             self.n,
-            self.k,
         )
     }
 }
@@ -80,42 +75,39 @@ impl BuildHashIterHasher<u64> for DoubleHasherState {
 ///
 /// Emits an iterator (for a given input key) over hash values generated using
 /// enhanced double hashing.
-pub struct DoubleHasher<H1, H2> {
+pub struct DoubleHashHasher<H1, H2> {
     hash_builder1: H1,
     hash_builder2: H2,
     n: usize,
-    k: usize,
 }
 
-impl DoubleHasher<Xxh3Builder, Xxh3Builder> {
+impl DoubleHashHasher<Xxh3Builder, Xxh3Builder> {
     /// Constructs a new double hasher using default hash builders.
-    pub fn new(k: usize) -> Self {
-        let state = DoubleHasherState::new(k);
-        state.build_hash_iter_hasher()
+    pub fn new() -> Self {
+        DoubleHashBuilder::new().build_hash_iter_hasher()
     }
 }
 
-impl<H1, H2> DoubleHasher<H1, H2> {
-    pub fn with_hash_builders(hash_builder1: H1, hash_builder2: H2, n: usize, k: usize) -> Self {
+impl<H1, H2> DoubleHashHasher<H1, H2> {
+    pub fn with_hash_builders(hash_builder1: H1, hash_builder2: H2, n: usize) -> Self {
         Self {
             hash_builder1,
             hash_builder2,
             n,
-            k,
         }
     }
 }
 
-impl<H1, H2> HashIterHasher<u64> for DoubleHasher<H1, H2>
+impl<H1, H2> HashIterHasher<u64> for DoubleHashHasher<H1, H2>
 where
     H1: hash::BuildHasher,
     H2: hash::BuildHasher,
 {
-    fn hash_iter<K: hash::Hash>(&self, key: &K) -> impl Iterator<Item = u64> {
+    fn hash_iter<K: hash::Hash>(&self, key: &K, count: usize) -> impl Iterator<Item = u64> {
         let hash1 = self.hash_builder1.hash_one(key);
         let hash2 = self.hash_builder2.hash_one(key);
 
-        Hashes::new(hash1, hash2, self.n as u64, self.k as u64)
+        Hashes::new(hash1, hash2, self.n as u64, count as u64)
     }
 }
 
@@ -220,9 +212,9 @@ mod tests {
     fn default_build_hash_iter() {
         let key = "mykey";
         let n = 1e9 as u64;
-        let k = 100u64;
+        let k = 100;
 
-        let builder = DoubleHasherState::new(k as usize)
+        let builder = DoubleHashBuilder::new()
             .with_n(n as usize)
             .with_seed1(1)
             .with_seed2(2);
@@ -232,7 +224,7 @@ mod tests {
         let hash2 = hash_builder.with_seed(2).hash_one(key);
 
         let hasher = builder.build_hash_iter_hasher();
-        for (i, hash) in hasher.hash_iter(&key).enumerate() {
+        for (i, hash) in hasher.hash_iter(&key, k).enumerate() {
             assert_eq!(hash, hasn_fn(i as u64, hash1, hash2, n));
         }
     }
