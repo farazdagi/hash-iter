@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use {
     num_traits::{self, Num},
     std::{
