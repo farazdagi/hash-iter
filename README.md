@@ -4,7 +4,7 @@
 [![docs.rs](https://docs.rs/hash-iter/badge.svg)](https://docs.rs/hash-iter)
 
 Implementation of the *enhanced double hashing* technique based on the
-[Bloom Filters in Probabilistic Verification paper](https://www.khoury.northeastern.edu/~pete/pub/bloom-filters-verification.pdf)
+[Bloom Filters in Probabilistic Verification](https://www.khoury.northeastern.edu/~pete/pub/bloom-filters-verification.pdf)
 paper (Dillinger and Manolios, 2004).
 
 ## Motivation
@@ -72,3 +72,8 @@ value produced, by default it is `usize::MAX`, so that array indexing is safe), 
 
     let hashes = hasher.hash_iter(&"hello").collect::<Vec<_>>();
 ```
+
+### Custom hash functions
+
+One can specify which hash functions to use when getting the first two hash values used to produce
+the sequence. 
