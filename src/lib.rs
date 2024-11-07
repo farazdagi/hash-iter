@@ -75,7 +75,7 @@ impl BuildHashIterHasher<u64> for DoubleHashBuilder {
 ///
 /// Emits an iterator (for a given input key) over hash values generated using
 /// enhanced double hashing.
-pub struct DoubleHashHasher<H1, H2> {
+pub struct DoubleHashHasher<H1 = Xxh3Builder, H2 = Xxh3Builder> {
     hash_builder1: H1,
     hash_builder2: H2,
     n: usize,

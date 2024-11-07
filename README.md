@@ -76,7 +76,7 @@ All you need to do is to supply `DoubleHashHasher::with_hash_builders()` functio
 that implement [`hash::BuildHasher`](https://doc.rust-lang.org/std/hash/trait.BuildHasher.html):
 
 ``` rust
-use hash_iter::{BuildHashIterHasher, DoubleHashHasher, DoubleHashBuilder, HashIterHasher};
+use hash_iter::{DoubleHashHasher, HashIterHasher};
 use xxhash_rust::xxh3::Xxh3Builder;
 
 let hasher = DoubleHashHasher::with_hash_builders(

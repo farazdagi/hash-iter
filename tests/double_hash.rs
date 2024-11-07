@@ -61,3 +61,60 @@ fn custom_hash_builders() {
         5246933596417309480
     ]);
 }
+
+#[test]
+fn use_as_struct_field() {
+    {
+        // Implicit builder types.
+        struct Foo {
+            hasher: DoubleHashHasher,
+        }
+
+        impl Foo {
+            fn new() -> Self {
+                Self {
+                    hasher: DoubleHashHasher::new(),
+                }
+            }
+
+            fn hash(&self, key: u64, count: usize) -> Vec<u64> {
+                self.hasher.hash_iter(&key, count).collect()
+            }
+        }
+
+        let foo = Foo::new();
+        let hashes = foo.hash(42, 3);
+        assert_eq!(hashes, vec![
+            2604207548944960858,
+            14475308512507584086,
+            7899665402360655699
+        ]);
+    }
+    {
+        // Explicit builder types.
+        use xxhash_rust::xxh3::Xxh3Builder;
+        struct Foo {
+            hasher: DoubleHashHasher<Xxh3Builder, Xxh3Builder>,
+        }
+
+        impl Foo {
+            fn new() -> Self {
+                Self {
+                    hasher: DoubleHashHasher::new(),
+                }
+            }
+
+            fn hash(&self, key: u64, count: usize) -> Vec<u64> {
+                self.hasher.hash_iter(&key, count).collect()
+            }
+        }
+
+        let foo = Foo::new();
+        let hashes = foo.hash(42, 3);
+        assert_eq!(hashes, vec![
+            2604207548944960858,
+            14475308512507584086,
+            7899665402360655699
+        ]);
+    }
+}
