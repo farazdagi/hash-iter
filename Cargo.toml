@@ -10,9 +10,9 @@ repository = "https://github.com/farazdagi/hash-iter"
 documentation = "https://docs.rs/hash-iter"
 readme = "README.md"
 keywords = [
+  "double-hashing",
   "bloom",
   "hashing",
-  "double-hashing",
   "open-addressing",
   "hash-table",
 ]
