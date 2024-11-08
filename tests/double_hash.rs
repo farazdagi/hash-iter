@@ -16,7 +16,7 @@ fn default_config() {
 
     {
         // Explicit builder object.
-        let builder = DoubleHashBuilder::new();
+        let builder: DoubleHashBuilder = DoubleHashBuilder::new();
         let hasher = builder.build_hash_iter_hasher();
         let hashes = hasher.hash_iter(&"hello", 3).collect::<Vec<_>>();
 
@@ -94,7 +94,7 @@ fn use_as_struct_field() {
         // Explicit builder types.
         use xxhash_rust::xxh3::Xxh3Builder;
         struct Foo {
-            hasher: DoubleHashHasher<Xxh3Builder, Xxh3Builder>,
+            hasher: DoubleHashHasher<u64, Xxh3Builder, Xxh3Builder>,
         }
 
         impl Foo {

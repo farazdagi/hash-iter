@@ -61,7 +61,7 @@ use hash_iter::{BuildHashIterHasher, DoubleHashHasher, DoubleHashBuilder, HashIt
 let hasher = DoubleHashBuilder::new()
     .with_seed1(12345)
     .with_seed2(67890)
-    .with_n(usize::MAX)
+    .with_n(usize::MAX as u64)
     .build_hash_iter_hasher();
 
 let hashes = hasher.hash_iter(&"hello", 3).collect::<Vec<_>>();
