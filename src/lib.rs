@@ -74,6 +74,12 @@ impl<T: Number> DoubleHashBuilder<T> {
     }
 }
 
+impl<T: Number> Default for DoubleHashBuilder<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Number> BuildHashIterHasher<T> for DoubleHashBuilder<T> {
     type Hasher = DoubleHashHasher<T, Xxh3Builder, Xxh3Builder>;
 
