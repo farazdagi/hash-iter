@@ -28,7 +28,7 @@ impl<T> Number for T where
 pub trait HashIterHasher<T> {
     /// Returns an iterator over `count` number of hash values generated using
     /// enhanced double hashing.
-    fn hash_iter<K: hash::Hash>(&self, key: &K, count: usize) -> impl Iterator<Item = T>;
+    fn hash_iter<K: hash::Hash + ?Sized>(&self, key: &K, count: usize) -> impl Iterator<Item = T>;
 }
 
 /// Builds hash iterator hasher -- a hasher capable of generating multiple hash
@@ -128,7 +128,7 @@ where
     H1: hash::BuildHasher,
     H2: hash::BuildHasher,
 {
-    fn hash_iter<K: hash::Hash>(&self, key: &K, count: usize) -> impl Iterator<Item = T> {
+    fn hash_iter<K: hash::Hash + ?Sized>(&self, key: &K, count: usize) -> impl Iterator<Item = T> {
         let hash1 = self.hash_builder1.hash_one(key);
         let hash2 = self.hash_builder2.hash_one(key);
 
