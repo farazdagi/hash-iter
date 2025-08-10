@@ -2,6 +2,8 @@
 
 [![crates.io](https://img.shields.io/crates/d/hash-iter.svg)](https://crates.io/crates/hash-iter)
 [![docs.rs](https://docs.rs/hash-iter/badge.svg)](https://docs.rs/hash-iter)
+[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
+[![dependencies](https://deps.rs/repo/github/farazdagi/hash-iter/status.svg)](https://deps.rs/repo/github/farazdagi/hash-iter)
 
 Implementation of the **enhanced double hashing** technique based on the
 [Bloom Filters in Probabilistic Verification](https://www.khoury.northeastern.edu/~pete/pub/bloom-filters-verification.pdf)
