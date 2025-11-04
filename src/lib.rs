@@ -150,7 +150,7 @@ where
 /// ```
 ///
 /// [1]: https://www.khoury.northeastern.edu/~pete/pub/bloom-filters-verification.pdf
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Hashes<T: Number> {
     /// The first hash point.
     hash1: T,

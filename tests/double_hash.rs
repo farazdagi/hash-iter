@@ -171,3 +171,114 @@ fn modular_arithmetic_overflow_regression() {
         "Iterator should be exhausted after k iterations"
     );
 }
+
+#[test]
+fn clone_iterator_checkpoint() {
+    use hash_iter::Hashes;
+
+    // Test 1: Clone at the start
+    let hash1: u64 = 12345;
+    let hash2: u64 = 67890;
+    let n: u64 = 10000;
+    let k: u64 = 5;
+
+    let iter = Hashes::new(hash1, hash2, n, k);
+    let clone_at_start = iter.clone();
+
+    // Both should produce identical sequences
+    let original_values: Vec<_> = iter.collect();
+    let cloned_values: Vec<_> = clone_at_start.collect();
+
+    assert_eq!(
+        original_values, cloned_values,
+        "Clone at start should produce identical sequence"
+    );
+    assert_eq!(original_values.len(), 5, "Should produce 5 values");
+
+    // Test 2: Clone mid-iteration
+    let mut iter = Hashes::new(hash1, hash2, n, k);
+
+    // Consume first 2 values
+    let _first = iter.next();
+    let _second = iter.next();
+
+    // Clone the iterator at this checkpoint
+    let checkpoint = iter.clone();
+
+    // Both original and checkpoint should produce the same remaining values
+    let remaining_original: Vec<_> = iter.collect();
+    let remaining_checkpoint: Vec<_> = checkpoint.collect();
+
+    assert_eq!(
+        remaining_original, remaining_checkpoint,
+        "Clone mid-iteration should produce identical remaining sequence"
+    );
+    assert_eq!(
+        remaining_original.len(),
+        3,
+        "Should have 3 remaining values after consuming 2"
+    );
+
+    // Test 3: Verify independence - advancing one doesn't affect the other
+    let mut iter1 = Hashes::new(hash1, hash2, n, k);
+    let mut iter2 = iter1.clone();
+
+    // Advance iter1 by 1
+    let val1_from_iter1 = iter1.next();
+
+    // iter2 should still start from the beginning
+    let val1_from_iter2 = iter2.next();
+
+    assert_eq!(
+        val1_from_iter1, val1_from_iter2,
+        "First values should match"
+    );
+
+    // Advance iter1 further
+    iter1.next();
+    iter1.next();
+
+    // iter2 should be independent and only advanced once
+    let val2_from_iter2 = iter2.next();
+
+    // Verify iter2's second value matches a fresh iterator's second value
+    let mut fresh = Hashes::new(hash1, hash2, n, k);
+    fresh.next();
+    let val2_from_fresh = fresh.next();
+
+    assert_eq!(
+        val2_from_iter2, val2_from_fresh,
+        "Cloned iterator should be independent of original"
+    );
+
+    // Test 4: Clone with Copy trait (not only Clone, but also Copy)
+    let iter = Hashes::new(hash1, hash2, n, 3);
+    let copy_of_iter = iter; // This is a copy operation since Hashes derives Copy
+
+    // Both should be usable independently
+    let from_original: Vec<_> = iter.collect();
+    let from_copy: Vec<_> = copy_of_iter.collect();
+
+    assert_eq!(
+        from_original, from_copy,
+        "Copy should work the same as Clone for iterator state"
+    );
+
+    // Test 5: Multiple checkpoints at different positions
+    let mut iter = Hashes::new(hash1, hash2, n, 10);
+
+    let checkpoint_0 = iter.clone();
+    iter.next();
+    iter.next();
+
+    let checkpoint_2 = iter.clone();
+    iter.next();
+    iter.next();
+
+    let checkpoint_4 = iter.clone();
+
+    // Each checkpoint should have the correct number of remaining elements
+    assert_eq!(checkpoint_0.count(), 10, "Checkpoint at position 0");
+    assert_eq!(checkpoint_2.count(), 8, "Checkpoint at position 2");
+    assert_eq!(checkpoint_4.count(), 6, "Checkpoint at position 4");
+}
