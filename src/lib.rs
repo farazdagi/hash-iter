@@ -80,7 +80,7 @@ impl<T: Number> Default for DoubleHashBuilder<T> {
     }
 }
 
-impl<T: Number> BuildHashIterHasher<T> for DoubleHashBuilder<T> {
+impl<T: Number + PartialOrd> BuildHashIterHasher<T> for DoubleHashBuilder<T> {
     type Hasher = DoubleHashHasher<T, Xxh3Builder, Xxh3Builder>;
 
     fn build_hash_iter_hasher(&self) -> Self::Hasher {
@@ -124,7 +124,7 @@ impl<T, H1, H2> DoubleHashHasher<T, H1, H2> {
 
 impl<T, H1, H2> HashIterHasher<T> for DoubleHashHasher<T, H1, H2>
 where
-    T: Number,
+    T: Number + PartialOrd,
     H1: hash::BuildHasher,
     H2: hash::BuildHasher,
 {
@@ -190,7 +190,7 @@ where
 
 impl<T> Iterator for Hashes<T>
 where
-    T: Number,
+    T: Number + PartialOrd,
 {
     type Item = T;
 
@@ -201,18 +201,48 @@ where
             return None;
         }
 
+        // Helper function for modular addition: computes (a + b) mod n.
+        // Assumes a and b are already reduced mod n (i.e., a < n and b < n).
+        // This avoids overflow issues that arise with naive wrapping_add + rem.
+        let add_mod = |a: T, b: T, n: T| -> T {
+            debug_assert!(a < n && b < n, "operands must be reduced mod n");
+
+            // Check if a + b >= n by testing a >= n - b
+            // This is safe because b < n, so n - b doesn't underflow
+            if a >= n - b {
+                // a + b >= n, so result is (a + b) - n
+                // Compute as a - (n - b) to avoid overflow
+                a - (n - b)
+            } else {
+                // a + b < n, just add normally
+                a + b
+            }
+        };
+
         if self.cnt == T::zero() {
             self.cnt = self.cnt.add(T::one());
-            return Some(self.hash1.rem(self.n));
+            // Reduce initial values on first iteration
+            self.hash1 = self.hash1.rem(self.n);
+            self.hash2 = self.hash2.rem(self.n);
+            return Some(self.hash1);
         }
 
-        self.hash1 = self.hash1.wrapping_add(&self.hash2).rem(self.n);
-        self.hash2 = self.hash2.wrapping_add(&self.cnt).rem(self.n);
+        // Both hash1 and hash2 are now guaranteed to be < n (reduced in previous
+        // iteration).
+        self.hash1 = add_mod(self.hash1, self.hash2, self.n);
+        self.hash2 = add_mod(self.hash2, self.cnt, self.n);
         self.cnt = self.cnt.add(T::one());
 
         Some(self.hash1)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = (self.k - self.cnt).to_usize().unwrap_or(0);
+        (remaining, Some(remaining))
+    }
 }
+
+impl<T> ExactSizeIterator for Hashes<T> where T: Number + PartialOrd {}
 
 #[cfg(test)]
 mod tests {

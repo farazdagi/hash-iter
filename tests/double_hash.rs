@@ -10,7 +10,7 @@ fn default_config() {
         assert_eq!(hashes, vec![
             10179864958193109059,
             16936771314159985077,
-            5246933596417309480
+            5246933596417309481
         ]);
     }
 
@@ -23,7 +23,7 @@ fn default_config() {
         assert_eq!(hashes, vec![
             10179864958193109059,
             16936771314159985077,
-            5246933596417309480
+            5246933596417309481
         ]);
     }
 }
@@ -40,7 +40,7 @@ fn custom_config() {
     assert_eq!(hashes, vec![
         10179864958193109059,
         16936771314159985077,
-        5246933596417309480
+        5246933596417309481
     ]);
 }
 
@@ -58,7 +58,7 @@ fn custom_hash_builders() {
     assert_eq!(hashes, vec![
         10179864958193109059,
         16936771314159985077,
-        5246933596417309480
+        5246933596417309481
     ]);
 }
 
@@ -87,7 +87,7 @@ fn use_as_struct_field() {
         assert_eq!(hashes, vec![
             2604207548944960858,
             14475308512507584086,
-            7899665402360655699
+            7899665402360655700
         ]);
     }
     {
@@ -114,7 +114,60 @@ fn use_as_struct_field() {
         assert_eq!(hashes, vec![
             2604207548944960858,
             14475308512507584086,
-            7899665402360655699
+            7899665402360655700
         ]);
     }
+}
+
+#[test]
+fn modular_arithmetic_overflow_regression() {
+    // Regression test for correct modular arithmetic with large hash values.
+    // When hash values are close to u64::MAX, wrapping_add can produce incorrect
+    // results even after applying the modulus operator.
+    //
+    // This test uses large initial hash values (near u64::MAX) with a small modulus
+    // to expose the overflow issue in the original implementation.
+    use hash_iter::Hashes;
+
+    // Setup: Large hash values near u64::MAX, small modulus
+    let hash1: u64 = u64::MAX - 100; // 18446744073709551515
+    let hash2: u64 = u64::MAX - 50; // 18446744073709551565
+    let n: u64 = 1000;
+    let k: u64 = 3;
+
+    let mut iter = Hashes::new(hash1, hash2, n, k);
+
+    // First value: hash1 % n
+    let first = iter.next();
+    assert_eq!(first, Some(515), "First hash should be hash1 % n = 515");
+
+    // Second value: This is where the overflow bug manifests
+    // Correct calculation:
+    //   hash1_reduced = 515
+    //   hash2_reduced = 565
+    //   (515 + 565) % 1000 = 1080 % 1000 = 80
+    //
+    // Buggy calculation (using wrapping_add without proper modular reduction):
+    //   (u64::MAX - 100) wrapping_add (u64::MAX - 50) = u64::MAX - 151
+    //   (u64::MAX - 151) % 1000 = 465 (WRONG!)
+    let second = iter.next();
+    assert_eq!(
+        second,
+        Some(80),
+        "If you see 465, the implementation is using wrapping_add incorrectly."
+    );
+
+    // Third value: Continue the sequence
+    // After second iteration:
+    //   hash1 = 80, hash2 = (565 + 1) % 1000 = 566
+    //   (80 + 566) % 1000 = 646
+    let third = iter.next();
+    assert_eq!(third, Some(646), "Third hash should be 646");
+
+    // Should be exhausted
+    assert_eq!(
+        iter.next(),
+        None,
+        "Iterator should be exhausted after k iterations"
+    );
 }
