@@ -26,21 +26,26 @@ This is useful for implementing many hash-based algorithms, such as:
 
 ## Usage
 
-Create and configure a hasher either by directly calling constructors of `DoubleHashHasher` or by
+Create and configure a hasher either by directly calling constructor of `DoubleHashHasher` or by
 using the builder object `DoubleHashBuilder`.
 
 ### Basic usage
 
 When we are relying on default parameters (for seed values, max hash value etc), and do not need to
 keep builder around (which is normally the case, as a single generated hasher is often enough), we
-can use the `DoubleHashHasher` constructor directly:
+can use the `DoubleHashHasher` constructor directly.
+
+The library supports three practical numeric types (`u32`, `u64`, `u128`) for output hash values.
+For the default output type (`u64`) use `DoubleHashHasher` constructor:
+
 
 ``` rust
 use hash_iter::{DoubleHashHasher, HashIterHasher};
 
+// Using u64 (most common, aligns with std::hash::Hasher)
 let hasher = DoubleHashHasher::new();
 
-// Hash each key to 3 hash points.
+// Hash each key to three u64 hash points.
 let hashes = hasher.hash_iter(&"foo", 3).collect::<Vec<_>>();
 let hashes = hasher.hash_iter(&"bar", 3).collect::<Vec<_>>();
 ```
@@ -49,24 +54,34 @@ let hashes = hasher.hash_iter(&"bar", 3).collect::<Vec<_>>();
 
 There are several optional parameters that can be configured:
 
-- `n`: the maximum hash value producible (by default it is `usize::MAX`, so that array indexing is
-  safe).
+- `n`: the maximum hash value producible (by default it is `T::MAX` for the chosen numeric type).
 - `seed1` and `seed2`: seeds for the two hash functions (by default they are `12345` and `67890`
-  respectively).
-
-The `DoubleHashBuilder` allows you to configure how hash iterators are produced:
+  respectively, truncated to fit the target type).
 
 ``` rust
-use hash_iter::{BuildHashIterHasher, DoubleHashHasher, DoubleHashBuilder, HashIterHasher};
+use hash_iter::{BuildHashIterHasher, DoubleHashBuilder, HashIterHasher};
 
-// Specify default values explicitly.
-let hasher = DoubleHashBuilder::new()
+// Configure hasher by seeding and capping the output value (`n`).
+let hasher = DoubleHashBuilder::<u64>::new()
     .with_seed1(12345)
     .with_seed2(67890)
-    .with_n(usize::MAX as u64)
+    .with_n(u64::MAX)
     .build_hash_iter_hasher();
 
 let hashes = hasher.hash_iter(&"hello", 3).collect::<Vec<_>>();
+```
+
+Additionally, by giving `DoubleHashBuilder` explicit type parameter (for example, `DoubleHashBuilder::<u128>`) you can configure hash output type, as well:
+
+``` rust
+use hash_iter::{BuildHashIterHasher, DoubleHashBuilder, HashIterHasher};
+
+// Configure for u32 with custom modulus
+let hasher = DoubleHashBuilder::<u32>::new()
+    .with_n(10000)
+    .build_hash_iter_hasher();
+
+let hashes: Vec<u32> = hasher.hash_iter(&"key", 5).collect();
 ```
 
 ### Custom hash functions
@@ -81,11 +96,27 @@ that implement [`hash::BuildHasher`](https://doc.rust-lang.org/std/hash/trait.Bu
 use hash_iter::{DoubleHashHasher, HashIterHasher};
 use xxhash_rust::xxh3::Xxh3Builder;
 
-let hasher = DoubleHashHasher::with_hash_builders(
+let hasher = DoubleHashHasher::<u64, _, _>::with_hash_builders(
     Xxh3Builder::new().with_seed(12345),
     Xxh3Builder::new().with_seed(67890),
-    usize::MAX, // n
+    u64::MAX, // n
 );
 
 let hashes = hasher.hash_iter(&"hello", 3).collect::<Vec<_>>();
+```
+
+You can use custom hash builders with any supported numeric type:
+
+``` rust
+use hash_iter::{DoubleHashHasher, HashIterHasher};
+use xxhash_rust::xxh3::Xxh3Builder;
+
+// Using u32 with custom hash builders
+let hasher = DoubleHashHasher::<u32, _, _>::with_hash_builders(
+    Xxh3Builder::new().with_seed(111),
+    Xxh3Builder::new().with_seed(222),
+    u32::MAX,
+);
+
+let hashes: Vec<u32> = hasher.hash_iter(&"test", 10).collect();
 ```

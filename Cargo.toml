@@ -19,5 +19,4 @@ keywords = [
 categories = ["algorithms", "data-structures"]
 
 [dependencies]
-num-traits = "0.2"
 xxhash-rust = { version = "0.8", features = ["xxh3", "const_xxh3"] }
