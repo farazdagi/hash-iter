@@ -91,12 +91,6 @@ Instead of computing `k` independent hashes, double hashing produces `k` hash va
 
 The implementation uses forward differencing for O(1) computation per iteration.
 
-## Documentation
-
-- **[API Documentation](https://docs.rs/hash-iter)** - Full API reference
-- **[Algorithm Paper](https://www.khoury.northeastern.edu/~pete/pub/bloom-filters-verification.pdf)** - Enhanced double hashing technique
-- **[Implementation Guide](CLAUDE.md)** - Detailed architecture and development notes
-
 ## License
 
 MIT
